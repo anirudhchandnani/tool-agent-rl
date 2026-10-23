@@ -26,7 +26,7 @@ class Reinforce:
     def step(self, env, rng):
         episodes = self.collect(env, rng)
         returns = torch.tensor([e["return"] for e in episodes])
-        advantages = returns / (returns.std() + 1e-8)
+        advantages = (returns - returns.mean()) / (returns.std() + 1e-8)
 
         self.opt.zero_grad()
         losses, entropies, kls = [], [], []
