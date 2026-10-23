@@ -3,7 +3,7 @@ import random
 
 import torch
 
-from algos import Reinforce, PPO, TRAINERS
+from algos import Reinforce, PPO, GRPO, TRAINERS
 from env import ToolEnv
 from policy import Policy, reference_copy
 
@@ -19,11 +19,11 @@ def build(trainer_cls, seed=0, **kwargs):
 
 
 def test_trainer_registry():
-    assert set(TRAINERS) == {"reinforce", "ppo"}
+    assert set(TRAINERS) == {"reinforce", "ppo", "grpo"}
 
 
 def test_step_returns_finite_metrics():
-    for cls in (Reinforce, PPO):
+    for cls in (Reinforce, PPO, GRPO):
         trainer, env, rng, _ = build(cls)
         metrics, episodes = trainer.step(env, rng)
         for key in ("reward", "entropy", "kl", "success", "loss"):
@@ -54,4 +54,9 @@ def test_reinforce_learns():
 
 def test_ppo_learns():
     early, late = improvement(PPO, 55)
+    assert late > early + 0.03
+
+
+def test_grpo_learns():
+    early, late = improvement(GRPO, 32)
     assert late > early + 0.03
