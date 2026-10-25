@@ -2,14 +2,14 @@ import numpy as np
 import torch
 from torch.distributions import Categorical, kl_divergence
 
+from env import sample_reachable
 from rollout import rollout, evaluate
 
 
 def decision_dataset(policy, env, rng, episodes=200):
     states, labels = [], []
     for _ in range(episodes):
-        start = rng.randint(*env.start_range)
-        target = rng.randint(*env.target_range)
+        start, target = sample_reachable(rng, env.start_range, env.max_steps)
         episode = rollout(policy, env, start, target)
         states.append(episode["hidden"][0])
         labels.append(1.0 if episode["success"] else 0.0)
@@ -50,8 +50,7 @@ def probe_decodability(policy, env, rng, episodes=200):
 def policy_difference(base, rl, env, rng, episodes=120):
     diffs = []
     for _ in range(episodes):
-        start = rng.randint(*env.start_range)
-        target = rng.randint(*env.target_range)
+        start, target = sample_reachable(rng, env.start_range, env.max_steps)
         episode = rollout(rl, env, start, target)
         _, _, _, rl_logits, _ = evaluate(rl, episode)
         _, _, _, base_logits, _ = evaluate(base, episode)
@@ -70,7 +69,7 @@ def steered_success(policy, env, tasks, direction, alpha):
 
 
 def causality_check(policy, env, rng, direction, tasks=150, alpha=4.0):
-    pairs = [(rng.randint(*env.start_range), rng.randint(*env.target_range)) for _ in range(tasks)]
+    pairs = [sample_reachable(rng, env.start_range, env.max_steps) for _ in range(tasks)]
     base = steered_success(policy, env, pairs, direction, 0.0)
     boosted = steered_success(policy, env, pairs, direction, alpha)
     suppressed = steered_success(policy, env, pairs, direction, -alpha)

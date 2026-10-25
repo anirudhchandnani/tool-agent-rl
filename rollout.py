@@ -1,7 +1,7 @@
 import torch
 from torch.distributions import Categorical, kl_divergence
 
-from env import ToolEnv
+from env import ToolEnv, sample_reachable
 from policy import BOS, value_token, target_token, action_token
 
 
@@ -75,7 +75,6 @@ def returns_to_go(rewards):
 def sample_batch(policy, env, rng, size, greedy=False):
     episodes = []
     for _ in range(size):
-        start = rng.randint(*env.start_range)
-        target = rng.randint(*env.target_range)
+        start, target = sample_reachable(rng, env.start_range, env.max_steps)
         episodes.append(rollout(policy, env, start, target, greedy=greedy))
     return episodes

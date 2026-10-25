@@ -1,13 +1,14 @@
 import numpy as np
 import torch
 
+from env import sample_reachable
 from rollout import rollout, evaluate, reference_kl
 
 
 class Reinforce:
     name = "reinforce"
 
-    def __init__(self, policy, ref, lr=3e-3, batch=24, kl_coef=0.02, entropy_coef=0.01):
+    def __init__(self, policy, ref, lr=1e-3, batch=24, kl_coef=0.02, entropy_coef=0.05):
         self.policy = policy
         self.ref = ref
         self.batch = batch
@@ -18,8 +19,7 @@ class Reinforce:
     def collect(self, env, rng):
         episodes = []
         for _ in range(self.batch):
-            start = rng.randint(*env.start_range)
-            target = rng.randint(*env.target_range)
+            start, target = sample_reachable(rng, env.start_range, env.max_steps)
             episodes.append(rollout(self.policy, env, start, target))
         return episodes
 

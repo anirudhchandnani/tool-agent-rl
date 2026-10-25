@@ -1,4 +1,6 @@
-from env import ToolEnv, apply_tool, clip_value, TOOLS, VALUE_MIN, VALUE_MAX
+import random
+
+from env import ToolEnv, apply_tool, clip_value, sample_reachable, TOOLS, VALUE_MIN, VALUE_MAX
 
 
 def test_apply_tool_operations():
@@ -37,17 +39,29 @@ def test_hitting_target_rewards_positive():
 
 
 def test_step_penalty_applies():
-    env = ToolEnv(step_penalty=0.02, overshoot_penalty=0.0)
+    env = ToolEnv(step_penalty=0.02)
     env.reset(start=0, target=30)
-    _, reward, _, _ = env.step(TOOLS.index("add2"))
+    _, reward, _, _ = env.step(TOOLS.index("stop"))
     assert reward < 0
 
 
-def test_overshoot_is_penalised():
-    env = ToolEnv(step_penalty=0.0, overshoot_penalty=0.1)
+def test_progress_rewards_positive():
+    env = ToolEnv(step_penalty=0.02, shaping_coef=0.05)
+    env.reset(start=0, target=30)
+    _, reward, _, _ = env.step(TOOLS.index("add2"))
+    assert reward > 0
+
+
+def test_moving_away_is_penalised():
+    env = ToolEnv(step_penalty=0.0, shaping_coef=0.1)
     env.reset(start=10, target=11)
     _, reward, _, _ = env.step(TOOLS.index("mul3"))
-    assert reward <= -0.1
+    assert reward < 0
+
+
+def test_sample_reachable_within_bounds():
+    start, target = sample_reachable(random.Random(0), (0, 12), 6)
+    assert VALUE_MIN <= target <= VALUE_MAX
 
 
 def test_episode_ends_at_max_steps():

@@ -12,7 +12,7 @@ import numpy as np
 import torch
 
 from algos import TRAINERS
-from env import ToolEnv, TOOLS
+from env import ToolEnv, TOOLS, sample_reachable
 from interp import probe_decodability, policy_difference, causality_check
 from policy import Policy, reference_copy
 
@@ -27,8 +27,7 @@ def sample_episodes(policy, env, rng, count):
     from rollout import rollout
     episodes = []
     for _ in range(count):
-        start = rng.randint(*env.start_range)
-        target = rng.randint(*env.target_range)
+        start, target = sample_reachable(rng, env.start_range, env.max_steps)
         episode = rollout(policy, env, start, target, greedy=True)
         steps = []
         value = start
@@ -53,7 +52,7 @@ def episode_value(value, tool):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--algo", choices=list(TRAINERS), required=True)
-    parser.add_argument("--iters", type=int, default=60)
+    parser.add_argument("--iters", type=int, default=120)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--probe-every", type=int, default=10)
     parser.add_argument("--out", type=str, default="runs")
