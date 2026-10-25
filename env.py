@@ -21,21 +21,27 @@ def apply_tool(value, tool):
     return value
 
 
+def sample_reachable(rng, start_range, max_steps):
+    start = rng.randint(*start_range)
+    value = start
+    for _ in range(rng.randint(1, max_steps - 1)):
+        value = apply_tool(value, rng.choice(TOOLS[:-1]))
+    return start, value
+
+
 class ToolEnv:
     def __init__(self, max_steps=6, start_range=(0, 12), target_range=(0, 30),
-                 step_penalty=0.02, overshoot_penalty=0.05, seed=None):
+                 step_penalty=0.02, shaping_coef=0.05, seed=None):
         self.max_steps = max_steps
         self.start_range = start_range
         self.target_range = target_range
         self.step_penalty = step_penalty
-        self.overshoot_penalty = overshoot_penalty
+        self.shaping_coef = shaping_coef
         self.rng = random.Random(seed)
         self.reset()
 
     def sample_task(self):
-        start = self.rng.randint(*self.start_range)
-        target = self.rng.randint(*self.target_range)
-        return start, target
+        return sample_reachable(self.rng, self.start_range, self.max_steps)
 
     def reset(self, start=None, target=None):
         if start is None or target is None:
@@ -55,10 +61,8 @@ class ToolEnv:
         before = abs(self.value - self.target)
         self.value = apply_tool(self.value, tool)
         self.steps += 1
-        reward = -self.step_penalty
         after = abs(self.value - self.target)
-        if tool != "stop" and after > before:
-            reward -= self.overshoot_penalty
+        reward = -self.step_penalty + self.shaping_coef * (before - after)
         self.hit = self.value == self.target
         if tool == "stop" or self.steps >= self.max_steps:
             self.done = True

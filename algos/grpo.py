@@ -1,14 +1,15 @@
 import numpy as np
 import torch
 
+from env import sample_reachable
 from rollout import rollout, evaluate, reference_kl
 
 
 class GRPO:
     name = "grpo"
 
-    def __init__(self, policy, ref, lr=3e-3, groups=6, group_size=6, epochs=2,
-                 clip=0.2, kl_coef=0.02, entropy_coef=0.01):
+    def __init__(self, policy, ref, lr=1e-3, groups=6, group_size=6, epochs=2,
+                 clip=0.2, kl_coef=0.02, entropy_coef=0.05):
         self.policy = policy
         self.ref = ref
         self.groups = groups
@@ -22,8 +23,7 @@ class GRPO:
     def collect(self, env, rng):
         episodes = []
         for _ in range(self.groups):
-            start = rng.randint(*env.start_range)
-            target = rng.randint(*env.target_range)
+            start, target = sample_reachable(rng, env.start_range, env.max_steps)
             group = [rollout(self.policy, env, start, target) for _ in range(self.group_size)]
             rewards = torch.tensor([e["return"] for e in group])
             advantages = (rewards - rewards.mean()) / (rewards.std() + 1e-8)

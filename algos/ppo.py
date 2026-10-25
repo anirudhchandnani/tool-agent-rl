@@ -1,14 +1,15 @@
 import numpy as np
 import torch
 
+from env import sample_reachable
 from rollout import rollout, evaluate, reference_kl, returns_to_go
 
 
 class PPO:
     name = "ppo"
 
-    def __init__(self, policy, ref, lr=3e-3, batch=24, epochs=4, clip=0.2,
-                 vf_coef=0.5, kl_coef=0.02, entropy_coef=0.01):
+    def __init__(self, policy, ref, lr=1e-3, batch=24, epochs=4, clip=0.2,
+                 vf_coef=0.5, kl_coef=0.02, entropy_coef=0.05):
         self.policy = policy
         self.ref = ref
         self.batch = batch
@@ -22,8 +23,7 @@ class PPO:
     def collect(self, env, rng):
         episodes = []
         for _ in range(self.batch):
-            start = rng.randint(*env.start_range)
-            target = rng.randint(*env.target_range)
+            start, target = sample_reachable(rng, env.start_range, env.max_steps)
             episode = rollout(self.policy, env, start, target)
             episode["rtg"] = returns_to_go(episode["rewards"])
             episodes.append(episode)
